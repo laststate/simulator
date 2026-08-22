@@ -1,0 +1,14 @@
+# Binaries
+*.exe
+*.exe~
+*.test
+*.out
+simulator
+/bin/
+/dist/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
