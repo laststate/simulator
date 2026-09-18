@@ -65,6 +65,9 @@ Pin one scenario with `SIM_SCENARIO=steady|crash-storm|network-outage|boot-loop`
 
 ## Configuration
 
+Copy `.env.example` to `.env` and tweak — every knob below is there with
+sane demo defaults:
+
 | Variable | Default | Meaning |
 |---|---|---|
 | `RELAY_URL` | `http://relay:8384` | Relay HTTP source |

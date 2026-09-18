@@ -7,6 +7,10 @@ simulator
 /bin/
 /dist/
 
+# Local env (see .env.example — never commit real tokens)
+.env
+!.env.example
+
 # IDE / OS
 .idea/
 .vscode/
