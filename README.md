@@ -104,4 +104,4 @@ Internal layout: `internal/lep` (wire format), `internal/device` (state
 machines + offline buffer), `internal/transport` (HTTP/TCP/UDP senders),
 `internal/scenario` (phase engine), `internal/report` (console + metrics).
 
-Proprietary — part of the LastState platform.
+Apache-2.0 — part of the LastState platform.
