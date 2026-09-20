@@ -4,24 +4,17 @@ Simulates a fleet of embedded devices running **Latch** firmware against a real
 **Relay** gateway, so `docker compose up` turns on the entire LastState
 platform end to end — and you can watch every layer work.
 
-```
-                ┌────────────────────────────────────────────────┐
-                │            SIMULATED DEVICE FLEET              │
-                │  stm32 · esp32 · nrf52 · riscv · linux-edge    │
-                │  (LEP v2: identity, CPU/fault ctx, breadcrumbs)│
-                └───────┬──────────┬───────────────┬─────────────┘
-                        │ HTTP     │ TCP (COBS)    │ UDP
-                        ▼          ▼               ▼
-                ┌────────────────────────────────────────────────┐
-                │  RELAY — offline-first gateway                 │
-                │  persist-before-ACK · spool · retries · LSAK   │
-                └───────────────────┬────────────────────────────┘
-                                    │ batch, zstd, mirror delivery
-                                    ▼
-                ┌────────────────────────────────────────────────┐
-                │  TRACE — backend + UI                          │
-                │  grouping · symbolication · alerts · dashboards│
-                └────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph fleet["SIMULATED DEVICE FLEET"]
+        devices["stm32 · esp32 · nrf52 · riscv · linux-edge<br/>(LEP v2: identity, CPU/fault ctx, breadcrumbs)"]
+    end
+    relay["RELAY — offline-first gateway<br/>persist-before-ACK · spool · retries · LSAK"]
+    trace["TRACE — backend + UI<br/>grouping · symbolication · alerts · dashboards"]
+    devices -- "HTTP" --> relay
+    devices -- "TCP (COBS)" --> relay
+    devices -- "UDP" --> relay
+    relay -- "batch, zstd, mirror delivery" --> trace
 ```
 
 ## What it demonstrates
