@@ -1,8 +1,8 @@
-# LastState Platform Fleet Simulator
+# LastState Fleet Simulator
 
-Simulates a fleet of embedded devices running **Latch** firmware against a real
-**Relay** gateway, so `docker compose up` turns on the entire LastState
-platform end to end — and you can watch every layer work.
+Simulates a fleet of embedded devices running Latch firmware against a real
+Relay gateway, so `docker compose up` brings the entire LastState platform up
+end to end — and you can watch every layer work.
 
 ```mermaid
 flowchart TB
@@ -30,9 +30,11 @@ flowchart TB
 
 ## Run the whole platform
 
-From the repository root (where `docker-compose.yml` lives):
+From the distribution repo (which holds `docker-compose.yml`):
 
 ```bash
+git clone --recurse-submodules https://github.com/laststate/laststate.git
+cd laststate
 docker compose up --build
 ```
 
@@ -41,8 +43,13 @@ Then watch:
 - **Simulator console** — the fleet table and per-event log lines (`⚡` delivered, `⧗` buffered offline, `↻` flush after reconnect, `✓ [lsak]` acknowledgements)
 - **Trace UI** — http://localhost:8080 (crash storms group into issues; boot loops show rising boot counters)
 - **Relay admin** — http://localhost:8383 (sources up, spool depth, delivery state)
-- **Grafana** — http://localhost:3000 (relay + simulator metrics)
+- **Grafana** — http://localhost:3001 in the distribution stack (relay + simulator metrics)
 - **Simulator metrics** — http://localhost:9468/metrics
+
+> [!NOTE]
+> The simulator generates synthetic traffic with fixed device identities. It
+> exists to exercise the pipeline, not to benchmark it — event rates and
+> timings are illustrative, not performance claims.
 
 ## Scenario timeline (demo mode)
 
@@ -96,5 +103,7 @@ go build .
 Internal layout: `internal/lep` (wire format), `internal/device` (state
 machines + offline buffer), `internal/transport` (HTTP/TCP/UDP senders),
 `internal/scenario` (phase engine), `internal/report` (console + metrics).
+
+## License
 
 Apache-2.0 — part of the LastState platform.
