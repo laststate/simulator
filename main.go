@@ -22,9 +22,11 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/laststate/simulator/internal/billing"
 	"github.com/laststate/simulator/internal/device"
 	"github.com/laststate/simulator/internal/lep"
 	"github.com/laststate/simulator/internal/report"
@@ -96,6 +98,37 @@ func main() {
 
 	metrics := report.NewMetrics()
 	report.ServeMetrics(cfg.MetricsListen)
+
+	// Billing realtime: report fleet throughput upstream every minute.
+	// Disabled unless BILLING_URL + BILLING_API_KEY + BILLING_ORG_ID are set.
+	billingCfg := billing.ConfigFromEnv()
+	var billedEvents atomic.Int64
+	billedCounter = &billedEvents
+	if billingCfg.Enabled() {
+		log.Printf("Billing realtime: reporting to %s", billingCfg.URL)
+		go func() {
+			t := time.NewTicker(time.Minute)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					n := billedEvents.Swap(0)
+					if n == 0 {
+						continue
+					}
+					key := billing.HourKey(billingCfg.OrgID) + ":" + time.Now().UTC().Format("04")
+					if err := billingCfg.Report(context.Background(), n, key); err != nil {
+						log.Printf("billing usage report failed (%v); will retry next tick", err)
+						billedEvents.Add(n)
+					} else {
+						log.Printf("billing usage reported: %d events", n)
+					}
+				}
+			}
+		}()
+	}
 
 	// Gate on the Relay HTTP source so `docker compose up` ordering is safe.
 	httpTransport := transport.NewHTTP(cfg.RelayURL, cfg.RelayToken)
@@ -270,6 +303,9 @@ func deliver(ctx context.Context, dev *device.Device, env *lep.Envelope, sender 
 			// HTTP/UDP have no async ACK loop; delivery succeeded.
 			dev.Stats.Accepted.Add(1)
 		}
+		if billedCounter != nil {
+			billedCounter.Add(1)
+		}
 		log.Printf("  ⚡ [%s|%s] %s", dev.ID(), dev.Transport, env.Summary)
 	case ctx.Err() != nil:
 		return
@@ -337,6 +373,9 @@ func sendBatch(ctx context.Context, fleet []*device.Device, batcher transport.Ba
 		dev.Stats.Sent.Add(1)
 		dev.Stats.Accepted.Add(1)
 	}
+	if billedCounter != nil {
+		billedCounter.Add(int64(len(devs)))
+	}
 	log.Printf("  ⚡ [BATCH x%d] fleet burst delivered", size)
 }
 
@@ -385,6 +424,10 @@ func envOr(key, fallback string) string {
 	}
 	return fallback
 }
+
+// billedCounter tracks fleet events for the billing realtime reporter.
+// It is set in main and incremented on every accepted delivery.
+var billedCounter *atomic.Int64
 
 func envFloat(key string, fallback float64) float64 {
 	if v := os.Getenv(key); v != "" {
